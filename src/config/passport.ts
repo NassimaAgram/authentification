@@ -1,3 +1,4 @@
+// src/config/passport.ts
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import User, { IUser } from '../models/userModel';
@@ -10,27 +11,30 @@ passport.use(
       callbackURL: '/auth/google/callback',
     },
     async (accessToken, refreshToken, profile, done) => {
+      const { id, emails } = profile;
+      const email = emails && emails[0].value;
+
       try {
-        let user = await User.findOne({ googleId: profile.id });
+        let user = await User.findOne({ googleId: id });
 
         if (!user) {
-          user = await User.create({
-            googleId: profile.id,
-            email: profile.emails![0].value,
-            name: profile.displayName,
-          });
+          user = await User.findOneAndUpdate(
+            { email },
+            { googleId: id },
+            { new: true, upsert: true }
+          );
         }
 
         done(null, user);
       } catch (error) {
-        done(error, null);
+        done(error, undefined);
       }
     }
   )
 );
 
-passport.serializeUser((user: IUser, done) => {
-  done(null, user.id);
+passport.serializeUser((user, done) => {
+  done(null, (user as IUser)._id);
 });
 
 passport.deserializeUser(async (id, done) => {
@@ -41,3 +45,5 @@ passport.deserializeUser(async (id, done) => {
     done(error, null);
   }
 });
+
+export default passport;

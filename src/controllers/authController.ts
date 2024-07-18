@@ -159,5 +159,6 @@ export const logoutUser = async (req: Request, res: Response) => {
 };
 
 export const GoogleLogin = (req: Request, res: Response) => {
-  res.send('Google Login Successful');
-};
+    const token = generateToken(req.user!._id);
+    res.status(200).json({ token });
+  };
